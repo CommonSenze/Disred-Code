@@ -17,6 +17,7 @@ import lombok.Setter;
 import me.commonsenze.project.Core;
 import me.commonsenze.project.Lang;
 import me.commonsenze.project.Enums.ParticleEffect;
+import me.commonsenze.project.Interfaces.Callback;
 import me.commonsenze.project.Util.MathUtil;
 import me.commonsenze.project.Util.ParticleUtil;
 
@@ -64,9 +65,9 @@ public class Triangle implements Runnable, Cloneable {
 	}
 
 	public double getArea() {
-		double a = Math.abs(vertices[0].getVector().distance(vertices[1].getVector()));
-		double b = Math.abs(vertices[1].getVector().distance(vertices[2].getVector()));
-		double c = Math.abs(vertices[2].getVector().distance(vertices[0].getVector()));
+		double a = vertices[0].getVector().distance(vertices[1].getVector());
+		double b = vertices[1].getVector().distance(vertices[2].getVector());
+		double c = vertices[2].getVector().distance(vertices[0].getVector());
 
 		return MathUtil.getAreaOfTriangle(a, b, c);
 	}
@@ -107,35 +108,41 @@ public class Triangle implements Runnable, Cloneable {
 			Vertice first = vertices[i];
 			Vertice second = vertices[i + 1 == vertices.length ? 0 : i + 1];
 
-			Vector particleVec = first.getVector();
 			Vector dirTo = first.directionTo(second);
 
-			double distance = first.getVector().distance(second.getVector());
-
-			new BukkitRunnable() {
-				private double distanceTraveled = 0;
-
-				public void run() {
-					particleVec.add(dirTo);
-					if (distanceTraveled >= distance) {
-						vertices[placement].setFinished(true);
-						if (finishedDrawing()) {
-							new BukkitRunnable() {
-								public void run() {
-									fill();
-								}
-							}.runTaskLater(Core.getInstance(), 20);
+			drawLine(first.getVector(), second.getVector(), dirTo, () -> {
+				vertices[placement].setFinished(true);
+				if (finishedDrawing()) {
+					new BukkitRunnable() {
+						public void run() {
+							fill();
 						}
-						cancel();
-						return;
-					}
-					Location loc = new Location(world, particleVec.getX(), particleVec.getY(), particleVec.getZ());
-					spawnedParticles.add(loc);
-					distanceTraveled += ParticleUtil.PARTICLE_SPACING;
+					}.runTaskLater(Core.getInstance(), 20);
 				}
-			}.runTaskTimer(Core.getInstance(), 10, 10);
+			});
 		}
 		return true;
+	}
+
+	public void drawLine(Vector start, Vector end, Vector space, Callback callback) {
+		Vector particleVec = start.clone();
+		double distance = start.distance(end);
+
+		new BukkitRunnable() {
+			private double distanceTraveled = 0;
+
+			public void run() {
+				particleVec.add(space);
+				if (distanceTraveled >= distance) {
+					callback.callback();
+					cancel();
+					return;
+				}
+				Location loc = new Location(world, particleVec.getX(), particleVec.getY(), particleVec.getZ());
+				spawnedParticles.add(loc);
+				distanceTraveled += ParticleUtil.PARTICLE_SPACING;
+			}
+		}.runTaskTimer(Core.getInstance(), 3, 3);
 	}
 
 	public void fill() {
@@ -144,31 +151,60 @@ public class Triangle implements Runnable, Cloneable {
 			getCreator().sendMessage(Lang.success("-nFilling the now created triangle..."));
 			double startX = start.getX(), startY = start.getY(), startZ = start.getZ();
 			double endX = end.getX(), endY = end.getY(), endZ = end.getZ();
-			Triangle p0 = new Triangle(getUniqueId(), world);
-			p0.addVertice(vertices[0]);
-			p0.addVertice(vertices[1]);
-			Triangle p1 = new Triangle(getUniqueId(), world);
-			p1.addVertice(vertices[1]);
-			p1.addVertice(vertices[2]);
-			Triangle p2 = new Triangle(getUniqueId(), world);
-			p2.addVertice(vertices[2]);
-			p2.addVertice(vertices[0]);
-			for (double x = startX; x < endX; x += ParticleUtil.PARTICLE_SPACING)
-				for (double y = startY; y < endY; y += ParticleUtil.PARTICLE_SPACING)
-					for (double z = startZ; z < endZ; z += ParticleUtil.PARTICLE_SPACING) {
-						
-						Vector vector = new Vector(x,y,z);
-						double first = Triangle.getArea(vertices[0].getVector(), vertices[1].getVector(), vector);
-						double second = Triangle.getArea(vertices[1].getVector(), vertices[2].getVector(), vector);
-						double third = Triangle.getArea(vertices[2].getVector(), vertices[0].getVector(), vector);
-						
-						double area = first+second+third;
-//						if (Math.abs(area - getArea()) < 3)
-							System.out.println(area + " "+ getArea());
-							//						if (area == getArea())
-//							spawnedParticles.add(new Location(world, x,y,z));
+			Vector anchor = vertices[1].getVector();
+			Vector normal = MathUtil.getNormal(vertices[0].getVector(), vertices[1].getVector(), vertices[2].getVector()).add(anchor);
+			drawLine(anchor, normal, normal.clone().subtract(anchor).normalize().multiply(ParticleUtil.PARTICLE_SPACING), () -> {});
+			for (double x = startX; x < endX; x += 0.02)
+				for (double y = startY; y < endY; y += 0.02)
+					for (double z = startZ; z < endZ; z += 0.02) {
+
+						// A·(x4-x1) + B·(y4-y1) + C·z4 - A·x1 - B·y1 - C·z1
+						Vector point = new Vector(x,y,z);
+						Vector plane = anchor.clone();
+						Vector norm = normal.clone().subtract(anchor);
+
+						double independent = -(norm.getX() * plane.getX() + norm.getY() * plane.getY() + norm.getZ() * plane.getZ());
+
+						double planeEqu = norm.getX() * point.getX() + norm.getY() * point.getY() + norm.getZ() * point.getZ()+independent;
+						boolean samePlane = Math.abs(planeEqu) < 0.01;
+
+						if (samePlane) {
+							Vector vector = new Vector(x,y,z);
+//							double first = Triangle.getArea(vertices[0].getVector(), vertices[1].getVector(), vector);
+//							double second = Triangle.getArea(vertices[1].getVector(), vertices[2].getVector(), vector);
+//							double third = Triangle.getArea(vertices[2].getVector(), vertices[0].getVector(), vector);
+//							double area = first+second+third;
+							if (inTriangle(vector))
+								spawnedParticles.add(new Location(world, x,y,z));
+						}
 					}
 		}
+	}
+	
+	public boolean inTriangle(Vector point) {
+		Vector a = vertices[0].getVector();
+		Vector b = vertices[1].getVector();
+		Vector c = vertices[2].getVector();
+		Vector p = point.clone();
+		// Compute vectors        
+		Vector v0 = c.subtract(a);
+		Vector v1 = b.subtract(a);
+		Vector v2 = p.subtract(a);
+
+		// Compute dot products
+		double dot00 = v0.dot(v0);
+		double dot01 = v0.dot(v1);
+		double dot02 = v0.dot(v2);
+		double dot11 = v1.dot(v1);
+		double dot12 = v1.dot(v2);
+
+		// Compute barycentric coordinates
+		double invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+		double u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+		double v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+		// Check if point is in triangle
+		return (u >= 0) && (v >= 0) && (u + v < 1);
 	}
 
 	@Override
@@ -182,7 +218,7 @@ public class Triangle implements Runnable, Cloneable {
 			ParticleUtil.spawnParticle(loc, effect, 15);
 		}
 	}
-	
+
 	public static double getArea(Vector first, Vector second, Vector third) {
 		double a = first.distance(second);
 		double b = second.distance(third);

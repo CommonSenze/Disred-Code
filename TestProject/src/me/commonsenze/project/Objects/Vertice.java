@@ -19,4 +19,8 @@ public class Vertice {
 	public Vector directionTo(Vertice vertice) {
 		return vertice.getVector().clone().subtract(getVector()).normalize().multiply(ParticleUtil.PARTICLE_SPACING);
 	}
+	
+	public Vector getVector() {
+		return vector.clone();
+	}
 }
