@@ -1,0 +1,64 @@
+package me.commonsenze.website.Object;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.google.gson.reflect.TypeToken;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import me.commonsenze.website.WebsiteApplication;
+import me.commonsenze.website.Util.JsonDocument;
+import me.commonsenze.website.Util.RatingType;
+
+@Getter
+@Setter
+@ToString
+@Document(collection = "ratings")
+public class Ratings implements JsonDocument {
+
+	private String uniqueId, creator, ratingsHash;
+
+	public Ratings(String uniqueId, String creator, String ratingsHash) {
+		this.uniqueId = uniqueId == null ? UUID.randomUUID().toString() : uniqueId;
+		this.creator = creator;
+		this.ratingsHash = ratingsHash == null ? WebsiteApplication.getGson().toJson(new HashMap<>()) : ratingsHash;
+	}
+
+	public Map<RatingType, List<UUID>> getRatings() {
+		return WebsiteApplication.getGson().fromJson(ratingsHash, new TypeToken<Map<RatingType, List<UUID>>>() {}.getType());
+	}
+
+	public void addRating(RatingType type, UUID uuid) {
+		Map<RatingType, List<UUID>> map = getRatings();
+		removeRating(uuid);
+		if (map.containsKey(type)&&map.get(type)!=null)
+			map.get(type).add(uuid);
+		else map.put(type, new ArrayList<>(Arrays.asList(uuid)));
+		this.ratingsHash = WebsiteApplication.getGson().toJson(map);
+	}
+	
+	public int getTypeAmount(RatingType type) {
+		Map<RatingType, List<UUID>> map = getRatings();
+		if (map.get(type)!= null)
+			return map.get(type).size();
+		return 0;
+	}
+	
+	public void removeRating(UUID uuid) {
+		Map<RatingType, List<UUID>> map = getRatings();
+		for (RatingType rType : map.keySet()) {
+			if (map.get(rType)!= null&&map.get(rType).contains(uuid)) {
+				map.get(rType).remove(uuid);
+			}
+		}
+		this.ratingsHash = WebsiteApplication.getGson().toJson(map);
+	}
+}

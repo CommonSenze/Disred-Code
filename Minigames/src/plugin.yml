@@ -1,0 +1,4 @@
+name: Minigames
+version: 1.0
+main: me.commonsenze.minigames.Minigames
+depend: [Core]

@@ -1,0 +1,4 @@
+name: Core
+version: 1.0
+main: me.commonsenze.core.Core
+loadbefore: [Lobby]

@@ -1,0 +1,40 @@
+package me.commonsenze.website.Object;
+
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.google.gson.reflect.TypeToken;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import me.commonsenze.website.WebsiteApplication;
+import me.commonsenze.website.Util.JsonDocument;
+
+@Getter
+@Setter
+@ToString
+@Document(collection = "threads")
+public class ForumThread implements JsonDocument {
+
+	private String uniqueId, subcategoryId, creator, title, repliesHash;
+	private Post mainPost;
+	private boolean locked, sticky;
+	
+	public ForumThread(String uniqueId, String subcategoryId, String creator, Post mainPost, String title, String repliesHash, boolean locked, boolean sticky) {
+		this.subcategoryId = subcategoryId;
+		this.uniqueId = uniqueId == null ? UUID.randomUUID().toString() : uniqueId;
+		this.creator = creator;
+		this.title = title;
+		this.mainPost = mainPost;
+		this.repliesHash = repliesHash;
+		this.locked = locked;
+		this.sticky = sticky;
+	}
+	
+	public List<Post> getReplies(){
+		return WebsiteApplication.getGson().fromJson(repliesHash, new TypeToken<List<Post>>() {}.getType());
+	}
+}

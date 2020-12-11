@@ -1,0 +1,207 @@
+package me.commonsenze.website.controller;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
+
+import me.commonsenze.website.WebsiteApplication;
+import me.commonsenze.website.Object.Category;
+import me.commonsenze.website.Object.ForumThread;
+import me.commonsenze.website.Object.Post;
+import me.commonsenze.website.Object.Profile;
+import me.commonsenze.website.Object.Ratings;
+import me.commonsenze.website.Object.Subcategory;
+import me.commonsenze.website.Object.RequestPackets.UpdateRating;
+import me.commonsenze.website.Respitory.CategoryRespitory;
+import me.commonsenze.website.Respitory.PostRespitory;
+import me.commonsenze.website.Respitory.ProfileRespitory;
+import me.commonsenze.website.Respitory.RatingsRespitory;
+import me.commonsenze.website.Respitory.SubcategoryRespitory;
+import me.commonsenze.website.Respitory.ThreadRespitory;
+import me.commonsenze.website.Util.RatingType;
+
+@CrossOrigin(origins = "http://localhost:3000")
+@RestController
+@RequestMapping("api/forums")
+public class ForumDataController {
+
+	@Autowired
+	private PostRespitory postRespitory;
+	@Autowired
+	private RatingsRespitory ratingsRespitory;
+	@Autowired
+	private SubcategoryRespitory subcategoryRespitory;
+	@Autowired
+	private ProfileRespitory profileRespitory;
+	@Autowired
+	private ThreadRespitory threadRespitory;
+	@Autowired
+	private CategoryRespitory categoryRespitory;
+	
+	@PostMapping("upload/category")
+	private List<Category> upload(@RequestBody Category category) {
+		categoryRespitory.insert(category);
+		return categoryRespitory.findAll();
+	}
+
+	@PostMapping("upload/post")
+	private void upload(@RequestBody Post post) {
+		postRespitory.insert(post);
+	}
+
+	@PostMapping("create/rating")
+	private void upload(@RequestBody Ratings rating) {
+		ratingsRespitory.insert(rating);
+	}
+	
+	@PostMapping("view/{threadId}")
+	private void view(@PathVariable("threadId") String threadId, @RequestBody Map<String,Object> obj) {
+		ForumThread thread = threadRespitory.getThread(threadId);
+		thread.addView((String)obj.get("ip"));
+		threadRespitory.save(thread);
+	}
+
+	@PostMapping("upload/thread")
+	private ForumThread upload(@RequestBody Map<String,Object> obj) {
+		String subcategoryId = obj.getOrDefault("subcategoryId", "").toString();
+		String imageURL = (String)obj.getOrDefault("imageURL", "");
+		String creator = obj.getOrDefault("creator", "").toString();
+		String text = obj.getOrDefault("text", "").toString();
+		String title = obj.getOrDefault("title", "").toString();
+		boolean locked = (boolean)obj.getOrDefault("locked", false);
+		boolean sticky = (boolean)obj.getOrDefault("sticky", false);
+		
+		List<Post> replies = WebsiteApplication.getGson().fromJson(obj.get("replies").toString(), new TypeToken<List<Post>>() {}.getType());
+		String uuid = UUID.randomUUID().toString();
+		Profile profile = profileRespitory.getProfile(creator);
+		ForumThread thread = new ForumThread(uuid, subcategoryId, imageURL, profile, new Post(null, uuid, profile, text, null, System.currentTimeMillis()), title, replies, new ArrayList<>(), locked, sticky);
+		
+		threadRespitory.insert(thread);
+		return thread;
+	}
+//	"https://res.cloudinary.com/commonsenze/image/upload/v1607069574/imageUpload/nbdbw1yq2kjtp8floed2.jpg"
+//	"<p>Welcome to the new website for Disred!</p><p><br>I hope all this time and effort I put into this UI for the website looks just as nice to you as it does for me. I spent a lot of time into creating this and feel that it was time well spent. If you have an idea, feature, or even critic you would like to make about the website don’t hesitate to reply to this thread to notify me.</p><p>In this thread, I will be discussing just a few of the basics I have for this website as a whole and what you can plan to see in the future. I will keep this post updated and refreshed when I make a change to ensure the Disred community is well informed.</p><p><br>More information on the server as a whole, where to contact staff, and much more will be in our discord.</p><p>&nbsp;</p><h4><strong>Staff Applications</strong>:</h4><p>Staff Applications are a tedious process, especially at the start of a server’s life. Many people apply soon after joining to become mod a new and developing server. This is welcomed and greatly encouraged here at Disred. Community staff plays a big role in ensuring the server is well maintained and allows for a better environment as a whole.</p><p>To apply to the server simply make a staff application thread in the Staff Application subcategory section in the forums (at this moment still under construction). If I like the application you submitted I will message you on discord where we will then schedule a voice chat to discuss more in-depth on what exactly I’m looking for in a staff applicant.</p><p>&nbsp;</p><h4><strong>Conclusion</strong>:</h4><p>Please keep in mind the server is in its early stages and nothing is currently set in stone. Updates are still being made as you read these words and we are still finalizing all the kinks for the server. Thank you for your patience and I hope you all enjoy the server as much as I enjoyed creating it.</p>"
+
+	@GetMapping("subcategory/{subcategoryId}/threads")
+	private List<ForumThread> getThreads(@PathVariable("subcategoryId") String subcategoryId) {
+		return threadRespitory.bySubcategory(subcategoryId);
+	}
+
+	@GetMapping("count/subcategory/{subcategoryId}/threads")
+	private String getThreadAmount(@PathVariable("subcategoryId") String subcategoryId) {
+		JsonObject obj = new JsonObject();
+
+		obj.addProperty("amount", threadRespitory.bySubcategory(subcategoryId).size());
+		return obj.toString();
+	}
+
+	@GetMapping("count/subcategory/{subcategoryId}/posts")
+	private String getPostAmount(@PathVariable("subcategoryId") String subcategoryId) {
+		JsonObject obj = new JsonObject();
+
+		int amount = 0;
+
+		for (ForumThread thread : threadRespitory.bySubcategory(subcategoryId)) {
+			amount += thread.getReplies().size();
+		}
+
+		obj.addProperty("amount", amount);
+		return obj.toString();
+	}
+
+	@PostMapping("upload/subcategory")
+	private String upload(@RequestBody Subcategory subcategory) {
+		subcategoryRespitory.insert(subcategory);
+		return subcategory.toJson();
+	}
+
+	@PostMapping("upload/rating")
+	private void addRating(@RequestBody UpdateRating rating) {
+		if (rating.isRemoving())
+			ratingsRespitory.getRating(rating.getRatingUUID()).removeRating(rating.getRaterUniqueId());
+		else
+			ratingsRespitory.getRating(rating.getRatingUUID()).addRating(rating.getType(), rating.getRaterUniqueId());
+	}
+
+	@GetMapping("rating/profile/recieved")
+	private String getRecievedRatings(@RequestParam("creator") String creator) {
+		JsonObject obj = new JsonObject();
+
+		for (RatingType type : RatingType.values()) {
+			obj.addProperty(type.name(), 0);
+		}
+
+		for (Ratings rating : ratingsRespitory.byCreator(creator)) {
+			for (RatingType type : RatingType.values()) {
+				obj.addProperty(type.name(), rating.getTypeAmount(type));
+			}
+		}
+		return obj.toString();
+	}
+
+	@GetMapping("rating/profile/sent")
+	private String getSentRatings(@RequestParam("sender") String sender) {
+		Map<RatingType, Integer> amounts = new HashMap<>();
+
+		for (RatingType type : RatingType.values()) {
+			amounts.putIfAbsent(type, 0);
+		}
+
+		for (Ratings rating : ratingsRespitory.findAll()) {
+			for (RatingType type : rating.getRatings().keySet()) {
+				Integer amount = amounts.putIfAbsent(type, 0);
+				List<UUID> uuids = rating.getRatings().get(type);
+				if (uuids != null && uuids.contains(UUID.fromString(sender))) {
+					amounts.put(type, amount != null ? amount + 1 : 1);
+				}
+			}
+		}
+		return WebsiteApplication.getGson().toJson(amounts);
+	}
+
+	@GetMapping("list/category")
+	private List<Category> listCategories() {
+		return categoryRespitory.findAll();
+	}
+	
+	@GetMapping("list/thread/{subcategory}/name")
+	private String listThreadsByName(@PathVariable("subcategory") String subcategory) {
+		if (subcategoryRespitory.getSubcategory(subcategory) == null)return null;
+		return WebsiteApplication.getGson().toJson(threadRespitory.bySubcategory(subcategoryRespitory.getSubcategory(subcategory).getUniqueId()));
+	}
+
+	@GetMapping("list/subcategory/{category}")
+	private String listSubcategories(@PathVariable("category") String category) {
+		return WebsiteApplication.getGson().toJson(subcategoryRespitory.byCategory(category));
+	}
+
+	@GetMapping("list/thread/{subcategoryId}")
+	private String listThreads(@PathVariable("subcategoryId") String subcategoryId) {
+		return WebsiteApplication.getGson().toJson(threadRespitory.bySubcategoryRanked(subcategoryId));
+	}
+
+	@GetMapping("list/post/{threadId}")
+	private String listPosts(@PathVariable("threadId") String threadId) {
+		return WebsiteApplication.getGson().toJson(postRespitory.byThread(threadId));
+	}
+
+	@GetMapping("ratings/{uuid}")
+	private String getRatings(@PathVariable("uuid") String uuid) {
+		return WebsiteApplication.getGson().toJson(ratingsRespitory.getRating(uuid));
+	}
+}

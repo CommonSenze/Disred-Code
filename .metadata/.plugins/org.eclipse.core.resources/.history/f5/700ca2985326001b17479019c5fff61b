@@ -1,0 +1,58 @@
+package me.commonsenze.website.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.google.gson.JsonObject;
+
+import me.commonsenze.website.Object.Profile;
+import me.commonsenze.website.Respitory.ProfileRespitory;
+
+@CrossOrigin(origins = "http://localhost:3000")
+@RestController
+@RequestMapping("api/")
+public class ProfileController {
+
+	@Autowired
+	private ProfileRespitory profileRespitory;
+	
+	@GetMapping("users")
+	public List<Profile> getProfiles(){
+		return this.profileRespitory.findAll();
+	}
+	
+	@GetMapping("user")
+	public String getProfile(@RequestParam("username") String username, @RequestParam("password") String password){
+		boolean usernameFound = false;
+		Profile user = null;
+		JsonObject errorOutput = new JsonObject();
+		
+		for (Profile u : this.profileRespitory.findAll()) {
+			usernameFound = u.isUsername(username);
+			if (u.isUser(username, password))
+				user = u;
+		}
+		
+		if (!usernameFound||username.isEmpty()) {
+			errorOutput.addProperty("usererror", username.isEmpty() ? "Please fill out this field." : "Account not found.");
+		}
+		if (password.isEmpty()||(user == null&&usernameFound)) {
+			errorOutput.addProperty("passworderror", password.isEmpty() ? "Please fill out this field." : "Password invalid.");
+		}
+		
+		if (errorOutput.size()!=0)return errorOutput.toString();
+		
+		return user.toJson();
+	}
+	
+//	@GetMapping("upload/user")
+//	public User getUser(@RequestParam("username") String username, @RequestParam("password") String password){
+//		return this.userRespitory.findAll().stream().filter(user -> user.isUser(username, password)).findFirst().orElse(null);
+//	}
+}

@@ -1,0 +1,28 @@
+package me.commonsenze.website.Object;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@Document(collection = "categories")
+public class Category {
+
+	private String title, description;
+	
+	public Category(String title, String description) {
+		this.title = title.toUpperCase();
+		this.description = description;
+	}
+	
+	public boolean isCategory(String category) {
+		return this.getTitle().equalsIgnoreCase(category);
+	}
+	
+	@Override
+	public String toString() {
+		return title;
+	}
+}

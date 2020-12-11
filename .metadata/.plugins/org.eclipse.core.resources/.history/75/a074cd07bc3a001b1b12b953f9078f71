@@ -1,0 +1,29 @@
+package me.commonsenze.website.Object;
+
+import java.util.UUID;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import me.commonsenze.website.Util.JsonDocument;
+
+@Getter
+@Setter
+@ToString
+@Document(collection = "subcategories")
+public class Subcategory implements JsonDocument {
+
+	private String title, category, uniqueId;
+	
+	public Subcategory(String uniqueId, String title, String category) {
+		this.uniqueId = uniqueId == null ? UUID.randomUUID().toString() : uniqueId;
+		this.title = title;
+		this.category = category.toUpperCase();
+	}
+	
+	public boolean isCategory(String category) {
+		return this.getCategory().equalsIgnoreCase(category);
+	}
+}

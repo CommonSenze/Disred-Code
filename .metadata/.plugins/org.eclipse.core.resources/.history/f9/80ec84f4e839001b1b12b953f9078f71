@@ -1,0 +1,24 @@
+package me.commonsenze.website.Util;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+
+
+@Configuration
+public class AppConfig {
+	
+	public static @Bean MongoClient mongoClient() {
+        return MongoClients.create(MongoClientSettings.builder()
+                .applyConnectionString(new ConnectionString("mongodb+srv://mongo:mongo@cluster0.xna43.mongodb.net"))
+                .build());
+    }
+
+//    public MongoTemplate mongoTemplate() {
+//        return new MongoTemplate(mongoClient(), "core");
+//    }
+}

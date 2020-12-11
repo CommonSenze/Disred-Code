@@ -1,0 +1,22 @@
+package me.commonsenze.website.Object;
+
+import java.util.List;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+@Getter
+@Setter
+@ToString
+@Document(collection = "categories")
+public class Category {
+
+	private String category;
+	
+	public Category(String category) {
+		
+	}
+}

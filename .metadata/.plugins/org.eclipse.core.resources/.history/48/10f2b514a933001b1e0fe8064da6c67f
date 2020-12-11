@@ -1,0 +1,19 @@
+package me.commonsenze.website.Respitory;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import com.google.gson.JsonObject;
+
+import me.commonsenze.website.Object.Post;
+
+@Repository
+public interface PostRespitory extends MongoRepository<Post, String> {
+
+	default List<Post> byThread(String threadId){
+		return findAll().stream().filter(post -> post.getThreadId().equals(threadId)).collect(Collectors.toList());
+	}
+}

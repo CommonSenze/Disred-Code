@@ -1,0 +1,39 @@
+package me.commonsenze.website.Respitory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import me.commonsenze.website.Object.Subcategory;
+
+@Repository
+public interface CategoryRespitory extends MongoRepository<Subcategory, String> {
+
+	default Map<String, List<Subcategory>> byCategoryMap(){
+		Map<String, List<Subcategory>> map = new HashMap<>();
+		
+		for (String string : getCategories()) {
+			map.put(string, byCategory(string));
+		}
+		return map;
+	}
+	
+	default List<Subcategory> byCategory(String category) {
+		return findAll().stream().filter(sub -> sub.isCategory(category)).collect(Collectors.toList());
+	}
+	
+	default List<String> getCategories() {
+		List<String> list = new ArrayList<>();
+		findAll().forEach(sub -> {
+			if (!list.contains(sub.getCategory())) {
+				list.add(sub.getCategory());
+			}
+		});
+		return list;
+	}
+}

@@ -1,0 +1,33 @@
+package me.commonsenze.website;
+
+import java.security.NoSuchAlgorithmException;
+
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import lombok.Getter;
+
+@SpringBootApplication
+public class WebsiteApplication implements CommandLineRunner {
+
+	@Getter private static Gson gson = new GsonBuilder()
+			.serializeNulls()
+			.create();
+
+	public static void main(String[] args) throws NoSuchAlgorithmException {
+		SpringApplication.run(WebsiteApplication.class, args);
+	}
+	
+	@Override
+	public void run(String... args) throws Exception {
+//		Map<String, Integer> map = new HashMap<>();
+//		Integer num = map.putIfAbsent("Hey", 5);
+//		System.out.println(num);
+		System.out.println(System.currentTimeMillis());
+	}
+
+}

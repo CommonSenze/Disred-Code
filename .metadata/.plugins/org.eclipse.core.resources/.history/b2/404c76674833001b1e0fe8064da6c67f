@@ -1,0 +1,29 @@
+package me.commonsenze.website.Object;
+
+import java.util.UUID;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import me.commonsenze.website.WebsiteApplication;
+import me.commonsenze.website.Util.JsonDocument;
+
+@Getter
+@Setter
+@ToString
+@Document(collection = "forumPosts")
+public class Post implements JsonDocument {
+
+	private String uniqueId, creator, threadId, text, ratings;
+	
+	public Post(String uniqueId, String threadId, String creator, String text, String ratings) {
+		this.uniqueId = uniqueId == null ? UUID.randomUUID().toString() : uniqueId;
+		this.threadId = threadId;
+		this.creator = creator;
+		this.text = text;
+		this.ratings = ratings == null ? WebsiteApplication.getGson().toJson(new Ratings(null, creator, null)) : ratings;
+		
+	}
+}

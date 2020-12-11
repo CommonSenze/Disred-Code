@@ -1,0 +1,71 @@
+package me.commonsenze.website.Object;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import me.commonsenze.website.Object.RequestPackets.ProfileAccount;
+import me.commonsenze.website.Util.JsonDocument;
+import me.commonsenze.website.Util.JsonUtil;
+
+@Getter
+@Setter
+@ToString
+@Document(collection = "profiles")
+public class Profile implements JsonDocument {
+
+	private String username, password, ip, rank;
+	private List<String> oldNames;
+	private List<String> friends;
+	private String uniqueId;
+	
+	public Profile(String uniqueId, String password, String ip, List<String> friends) {
+		String res = null;
+		try {
+			res = Unirest.get("https://api.mojang.com/user/profiles/" + uniqueId.replaceAll("-", "")+"/names").asString().getBody();
+		} catch (UnirestException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (JsonUtil.isJsonArray(res)) {
+			this.oldNames = new ArrayList<>();
+			final JsonArray arr = JsonParser.parseString(res).getAsJsonArray();
+			for (JsonElement element : arr) {
+				oldNames.add(element.getAsJsonObject().get("name").getAsString());
+			}
+			this.username = arr.get(arr.size()-1).getAsJsonObject().get("name").getAsString();
+			oldNames.removeIf(string -> string.equals(this.username));
+		}
+		
+		this.uniqueId = uniqueId;
+		this.ip = ip==null?"":ip;
+		this.friends = friends==null?new ArrayList<>():friends;
+		this.password = password;
+	}
+
+	public boolean isUser(ProfileAccount account) {
+		return isUsername(account.getUsername()) && hasPassword(account.getPassword());
+	}
+	
+	public boolean isOldName(String name) {
+		return this.oldNames.contains(name);
+	}
+
+	public boolean isUsername(String username) {
+		return this.username.equalsIgnoreCase(username);
+	}
+
+	public boolean hasPassword(String password) {
+		return this.password.equals(password);
+	}
+}

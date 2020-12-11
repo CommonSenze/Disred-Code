@@ -1,0 +1,11 @@
+package me.commonsenze.website.Respitory;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+import me.commonsenze.website.Object.Subcategory;
+
+@Repository
+public interface CategoryRespitory extends MongoRepository<Subcategory, String> {
+
+}

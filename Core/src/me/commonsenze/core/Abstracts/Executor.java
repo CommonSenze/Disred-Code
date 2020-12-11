@@ -1,0 +1,187 @@
+package me.commonsenze.core.Abstracts;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
+import org.apache.commons.lang.math.NumberUtils;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.defaults.BukkitCommand;
+import org.bukkit.entity.Player;
+
+import com.mongodb.client.MongoClient;
+
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
+import me.commonsenze.core.Core;
+import me.commonsenze.core.Lang;
+import me.commonsenze.core.Enums.ServerColor;
+import me.commonsenze.core.Interfaces.Editor;
+import me.commonsenze.core.Objects.TextBuilder;
+import me.commonsenze.core.Util.CC;
+import me.commonsenze.core.Util.TextUtil;
+import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+
+public abstract class Executor extends BukkitCommand {
+
+	@Getter @Setter(value = AccessLevel.PROTECTED) private boolean playersOnly;
+	@Getter private Editor permissionsEditor;
+
+	public Executor(String command, String description, String... aliases) {
+		super(command);
+		this.permissionsEditor = Core.getInstance().getPermissionsEditor();
+		this.description = description;
+		this.setAliases(Arrays.asList(aliases));
+		this.setPermission(Core.getInstance().getPermissionsEditor().getConfig().getString("commands.general").replaceAll("%command%", command));
+		System.out.println("Created "+command +" command");
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public MongoClient getConnection() {
+		return Core.getInstance().getManagerHandler().getMongoManager().getConnection();
+	}
+
+	public String getPermission(String key) {
+		return getPermissionsEditor().getConfig().getString(key).replaceAll("%command%", getName());
+	}
+
+	public void help(Player player, int page) {
+		ArrayList<String> help = new ArrayList<>(), temp = getHelp(player);
+		int rowsAllowed = 5, nextPage = (page+2);
+		for (int i = 0; i < temp.size(); i++) {
+			if (!temp.get(i).isEmpty()) {
+				help.add(temp.get(i));
+			}
+		}
+		if (help.isEmpty()) {
+			player.sendMessage(Lang.NO_PERMISSION);
+			return;
+		}
+		if (help.size() <= (page*rowsAllowed)) {
+			player.sendMessage(Lang.fail("-nThere is no page "+(page+1)+" for the command /-e"+getName() + "-n."));
+			return;
+		}
+		player.sendMessage(" ");
+		player.sendMessage(ServerColor.PRIMARY + CC.BOLD.toString() + getName().toUpperCase());
+		player.sendMessage(" ");
+		if (page > 0) {
+			TextBuilder builder = new TextBuilder()
+					.append("For previous commands, please go back to ").setColor(ChatColor.GOLD).create()
+					.append("page "+page).setColor(ChatColor.YELLOW).setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(CC.AQUA +"Click here to do command /"+CC.PINK +getName()+" help "+ page+CC.AQUA +".").create()))
+					.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/"+getName()+" help "+page)).create();
+
+			player.spigot().sendMessage(builder.append(TextUtil.toCenterSpacesOnly(builder.toPlainText())).createAtStart().toTextComponent());
+		}
+		for (int i = 0; i < rowsAllowed; i++) { 
+			if (help.size() == i+(page*rowsAllowed))break;
+			String str = help.get(i+(page*rowsAllowed));
+			String[] words = str.split(" - ");
+			player.spigot().sendMessage(new TextBuilder()
+					.append(words[0])
+					.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(words[1]).create()))
+					.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, ChatColor.stripColor(words[0]))).create()
+					.toTextComponent());
+		}
+
+		if (help.size() > (page+1)*rowsAllowed) {
+			TextBuilder builder = new TextBuilder()
+					.append("For more commands, please go to ").setColor(ChatColor.GOLD).create()
+					.append("page "+nextPage).setColor(ChatColor.YELLOW).setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(CC.AQUA +"Click here to do command /"+CC.PINK +getName()+" help "+ nextPage+CC.AQUA +".").create()))
+					.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/"+getName()+" help "+nextPage)).create();
+
+			player.spigot().sendMessage(builder.append(TextUtil.toCenterSpacesOnly(builder.toPlainText())).createAtStart().toTextComponent());
+		}
+
+		player.sendMessage(" ");
+	}
+	
+	public void help(Player player, String... args) {
+		ArrayList<String> help = new ArrayList<>(), temp = getHelp(player);
+		for (int i = 0; i < temp.size(); i++) {
+			if (!temp.get(i).isEmpty()) {
+				for (String string : args) {
+					if (temp.get(i).toLowerCase().contains(string.toLowerCase()))
+						help.add(temp.get(i));
+				}
+			}
+		}
+		if (help.isEmpty()) {
+			help(player, 0);
+			return;
+		}
+		player.sendMessage(" ");
+		player.sendMessage(ServerColor.PRIMARY + CC.BOLD.toString() + getName().toUpperCase());
+		player.sendMessage(" ");
+		for (int i = 0; i < help.size(); i++) { 
+			String str = help.get(i);
+			String[] words = str.split(" - ");
+			player.spigot().sendMessage(new TextBuilder()
+					.append(words[0])
+					.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ComponentBuilder(words[1]).create()))
+					.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, ChatColor.stripColor(words[0]))).create()
+					.toTextComponent());
+		}
+
+		player.sendMessage(" ");
+	}
+
+	@Override
+	public boolean execute(CommandSender sender, String label, String[] args) {
+		if (isPlayersOnly()&&!(sender instanceof Player)) {
+			sender.sendMessage(Lang.fail("-nOnly players can use this command"));
+			return true;
+		}
+		if (args.length >= 1&&args[0].equalsIgnoreCase("help")) {
+			this.help((Player)sender, parseOrOne(args)-1);
+		} else if (!this.execute(sender, args)){
+			if ((sender instanceof Player)&&args.length >= 1) {
+			this.help((Player)sender, args);
+			} else {
+				this.help((Player)sender, 0);
+			}
+		}
+		return true;
+	}
+
+	private int parseOrOne(String[] args) {
+		if (args.length < 2)return 1;
+		String string = args[1];
+		if (!NumberUtils.isNumber(string))return 1;
+		return Integer.parseInt(string) < 1 ? 1 : Integer.parseInt(string);
+	}
+
+	public List<String> getTabResults(Collection<String> strings, String ref){
+		List<String> tab = new ArrayList<>();
+
+		if (ref.equals("")) {
+			tab.addAll(strings);
+		} else {
+			for (String name : strings) {
+				if (isTabResults(name, ref))tab.add(name);
+			}
+		}
+
+		Collections.sort(tab);
+
+		return tab;
+	}
+
+	public boolean isTabResults(String string, String ref){		
+		if (ref.equals("")) {
+			return true;
+		} else if (string.toLowerCase().startsWith(ref.toLowerCase()))return true;
+		return false;
+	}
+
+	public abstract boolean execute(CommandSender sender, String[] args);	
+	public abstract ArrayList<String> getHelp(Player player);
+}

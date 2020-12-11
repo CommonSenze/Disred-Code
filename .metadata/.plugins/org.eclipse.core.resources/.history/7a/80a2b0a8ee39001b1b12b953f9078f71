@@ -1,0 +1,5 @@
+spring.data.rest.base-path=/api
+spring.data.mongodb.uri=mongodb+srv://mongo:mongo@cluster0.xna43.mongodb.net/web?retryWrites=true&w=majority
+spring.data.mongodb.database=web
+spring.main.allow-bean-definition-overriding=true
+

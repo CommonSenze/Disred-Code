@@ -1,0 +1,97 @@
+package me.commonsenze.website.Object;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.google.gson.reflect.TypeToken;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.model.Filters;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import me.commonsenze.website.WebsiteApplication;
+import me.commonsenze.website.Object.RequestPackets.ProfileAccount;
+import me.commonsenze.website.Util.AppConfig;
+import me.commonsenze.website.Util.JsonDocument;
+import me.commonsenze.website.Util.JsonUtil;
+
+@Getter
+@Setter
+@ToString
+@Document(collection = "profiles")
+public class Profile implements JsonDocument {
+
+	private String username, password, rank;
+	private String oldNames;
+	private String friends;
+	private String uniqueId;
+	private int ranking;
+	
+	public Profile(String uniqueId, String password, String friends) {
+		String res = null;
+		try {
+			res = Unirest.get("https://api.mojang.com/user/profiles/" + uniqueId.replaceAll("-", "")+"/names").asString().getBody();
+		} catch (UnirestException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if (JsonUtil.isJsonArray(res)) {
+			List<String> oldNames = new ArrayList<>();
+			final JsonArray arr = JsonParser.parseString(res).getAsJsonArray();
+			for (JsonElement element : arr) {
+				oldNames.add(element.getAsJsonObject().get("name").getAsString());
+			}
+			this.username = arr.get(arr.size()-1).getAsJsonObject().get("name").getAsString();
+			oldNames.removeIf(string -> string.equals(this.username));
+			this.oldNames = WebsiteApplication.getGson().toJson(oldNames);
+		}
+		this.uniqueId = uniqueId;
+		this.friends = friends==null?WebsiteApplication.getGson().toJson(Collections.EMPTY_LIST):friends;
+		this.password = password;
+		findRank();
+	}
+	
+	private void findRank() {
+		MongoClient mongoClient = AppConfig.mongoClient();
+		this.rank = mongoClient.getDatabase("core").getCollection("profiles").find(Filters.eq("uuid", this.uniqueId)).first().getString("rank");
+		if (rank == null) {
+			this.ranking = 100;
+		} else
+			this.ranking = getRankDocument(mongoClient).getInteger("ranking");
+	}
+	
+	public org.bson.Document getRankDocument(MongoClient mongoClient) {
+		if (rank == null||rank.isEmpty())
+			return null;
+		return mongoClient.getDatabase("core").getCollection("ranks").find(Filters.eq("uuid", rank)).first();
+	}
+
+	public boolean isUser(ProfileAccount account) {
+		return isUsername(account.getUsername()) && hasPassword(account.getPassword());
+	}
+	
+	public List<String> getOldNames() {
+		return WebsiteApplication.getGson().fromJson(oldNames, new TypeToken<List<String>>() {}.getType());
+	}
+	
+	public boolean isOldName(String name) {
+		return this.getOldNames().contains(name);
+	}
+
+	public boolean isUsername(String username) {
+		return this.username.equalsIgnoreCase(username);
+	}
+
+	public boolean hasPassword(String password) {
+		return this.password.equals(password);
+	}
+}

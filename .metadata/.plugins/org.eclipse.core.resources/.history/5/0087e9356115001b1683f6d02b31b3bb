@@ -1,0 +1,45 @@
+package me.commonsenze.core.Objects;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.scoreboard.NameTagVisibility;
+import org.bukkit.scoreboard.Team;
+
+public class TeamBuilder {
+
+	private Team team;
+	
+	public TeamBuilder() {
+		this("temp");
+	}
+	
+	public TeamBuilder(String name) {
+		this.team = Bukkit.getScoreboardManager().getNewScoreboard().registerNewTeam(name);
+	}
+	
+	public TeamBuilder setPrefix(String name) {
+		this.team.setPrefix(name);
+		return this;
+	}
+	
+	public TeamBuilder setNameTagVisibility(NameTagVisibility visibility) {
+		this.team.setNameTagVisibility(visibility);
+		return this;
+	}
+	
+	public TeamBuilder setCanSeeFriendlyInvisibles(boolean canSeeFriendlyInvisibles) {
+		this.team.setCanSeeFriendlyInvisibles(canSeeFriendlyInvisibles);
+		return this;
+	}
+	
+	public TeamBuilder setPlayers(Player... players) {
+		for (Player player : players) {
+			this.team.addEntry(player.getName());
+		}
+		return this;
+	}
+	
+	public Team toTeam() {
+		return team;
+	}
+}

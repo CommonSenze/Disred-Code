@@ -1,0 +1,40 @@
+package me.commonsenze.website;
+
+import java.security.NoSuchAlgorithmException;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.mongodb.client.MongoClient;
+
+import lombok.Getter;
+import me.commonsenze.website.Object.Profile;
+import me.commonsenze.website.Respitory.ProfileRespitory;
+
+@SpringBootApplication
+public class WebsiteApplication implements CommandLineRunner {
+
+	@Getter private static Gson gson = new GsonBuilder()
+			.serializeNulls()
+			.create();
+
+	public static void main(String[] args) throws NoSuchAlgorithmException {
+		SpringApplication.run(WebsiteApplication.class, args);
+	}
+	
+	@Autowired
+	private ProfileRespitory profileRespitory;
+	
+	@Autowired 
+	private MongoClient mongoClient;
+	
+	@Override
+	public void run(String... args) throws Exception {
+//		profileRespitory.insert(new Profile("4abe3926-1a53-4073-af0a-de59a7b5aedb", "Amarik23", null, null));
+	}
+
+}

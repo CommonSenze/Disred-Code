@@ -1,0 +1,18 @@
+package me.commonsenze.website.Object.RequestPackets;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+@Getter
+@Setter
+@ToString
+public class ProfileAccount {
+
+	private String username, password;
+	
+	public ProfileAccount(String username, String password) {
+		this.username = username;
+		this.password = password;
+	}
+}

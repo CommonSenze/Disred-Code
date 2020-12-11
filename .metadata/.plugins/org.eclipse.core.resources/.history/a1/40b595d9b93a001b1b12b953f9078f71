@@ -1,0 +1,30 @@
+package me.commonsenze.website.Respitory;
+
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+import com.google.gson.JsonElement;
+
+import me.commonsenze.website.Object.ForumThread;
+
+public interface ThreadRespitory extends MongoRepository<ForumThread, String> {
+	
+	default List<ForumThread> bySubcategory(String subcategoryId) {
+		List<ForumThread> threads = findAll().stream().filter(thread -> thread.getSubcategoryId().equals(subcategoryId)).collect(Collectors.toList());
+		Collections.sort(threads, new Comparator<ForumThread>() {
+	        @Override
+	        public int compare(ForumThread thread1, ForumThread thread2) {
+	            return Boolean.compare(thread2.isSticky(),thread1.isSticky());
+	        }
+	    });
+		return threads;
+	}
+	
+	default ForumThread getThread(String threadId) {
+		return findAll().stream().filter(thread -> thread.getId().equals(threadId)).findAny().orElse(null);
+	}
+}

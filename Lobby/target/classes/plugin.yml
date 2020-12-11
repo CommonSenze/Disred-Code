@@ -1,0 +1,4 @@
+name: Lobby
+version: 1.0
+main: me.commonsenze.lobby.Lobby
+depend: [Core]

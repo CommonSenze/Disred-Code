@@ -1,0 +1,78 @@
+package me.commonsenze.website.controller;
+
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.google.gson.JsonObject;
+
+import me.commonsenze.website.Object.Profile;
+import me.commonsenze.website.Object.RequestPackets.ProfileAccount;
+import me.commonsenze.website.Respitory.ProfileRespitory;
+
+@CrossOrigin(origins = "http://localhost:3000")
+@RestController
+@RequestMapping("api/profiles")
+public class ProfileDataController {
+
+	@Autowired
+	private ProfileRespitory profileRespitory;
+	
+	@GetMapping("list")
+	public List<Profile> getProfiles(){
+		return this.profileRespitory.findAll();
+	}
+	
+	@GetMapping("hash/{text}")
+	public String hashText(@PathVariable("text") String text) throws NoSuchAlgorithmException {
+		MessageDigest md = MessageDigest.getInstance("SHA-256");
+
+	    // Change this to UTF-16 if needed
+	    md.update(text.getBytes(StandardCharsets.UTF_8));
+	    byte[] digest = md.digest();
+	    String hex = String.format("%064x", new BigInteger(1, digest));
+	    JsonObject obj = new JsonObject();
+	    obj.addProperty("hash", hex);
+	    return obj.toString();
+	}
+	
+	@PostMapping("profile")
+	public String getProfile(@RequestBody ProfileAccount account){
+		boolean usernameFound = false;
+		Profile user = null;
+		JsonObject errorOutput = new JsonObject();
+		
+		for (Profile u : this.profileRespitory.findAll()) {
+			usernameFound = u.isUsername(account.getUsername());
+			if (u.isUser(account))
+				user = u;
+		}
+		
+		if (!usernameFound||account.getUsername().isEmpty()) {
+			errorOutput.addProperty("usererror", account.getUsername().isEmpty() ? "Please fill out this field." : "Account not found.");
+		}
+		if (account.getPassword().isEmpty()||(user == null&&usernameFound)) {
+			errorOutput.addProperty("passworderror", account.getPassword().isEmpty() ? "Please fill out this field." : "Password invalid.");
+		}
+		
+		if (errorOutput.size()!=0)return errorOutput.toString();
+		
+		return user.toJson();
+	}
+	
+//	@GetMapping("upload/user")
+//	public User getUser(@RequestParam("username") String username, @RequestParam("password") String password){
+//		return this.userRespitory.findAll().stream().filter(user -> user.isUser(username, password)).findFirst().orElse(null);
+//	}
+}

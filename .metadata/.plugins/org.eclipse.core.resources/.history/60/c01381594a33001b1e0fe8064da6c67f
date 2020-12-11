@@ -1,0 +1,29 @@
+package me.commonsenze.website.Object;
+
+import java.util.UUID;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import me.commonsenze.website.Util.RatingType;
+
+@Getter
+@Setter
+@ToString
+public class UpdateRating {
+
+	private String rater, ratingUUID;
+	private RatingType type;
+	private boolean removing;
+	
+	public UpdateRating(String rater, String ratingUUID, RatingType type) {
+		this.ratingUUID = ratingUUID;
+		this.rater = rater;
+		this.type = type;
+		this.removing = type == null;
+	}
+	
+	public UUID getRaterUniqueId() {
+		return UUID.fromString(rater);
+	}
+}
