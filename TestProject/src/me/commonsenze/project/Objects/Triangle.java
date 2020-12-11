@@ -152,8 +152,7 @@ public class Triangle implements Runnable, Cloneable {
 			double startX = start.getX(), startY = start.getY(), startZ = start.getZ();
 			double endX = end.getX(), endY = end.getY(), endZ = end.getZ();
 			Vector anchor = vertices[1].getVector();
-			Vector normal = MathUtil.getNormal(vertices[0].getVector(), vertices[1].getVector(), vertices[2].getVector()).add(anchor);
-			drawLine(anchor, normal, normal.clone().subtract(anchor).normalize().multiply(ParticleUtil.PARTICLE_SPACING), () -> {});
+			Vector normal = MathUtil.getNormal(vertices[0].getVector(), vertices[1].getVector(), vertices[2].getVector());
 			for (double x = startX; x < endX; x += 0.02)
 				for (double y = startY; y < endY; y += 0.02)
 					for (double z = startZ; z < endZ; z += 0.02) {
@@ -161,7 +160,7 @@ public class Triangle implements Runnable, Cloneable {
 						// A·(x4-x1) + B·(y4-y1) + C·z4 - A·x1 - B·y1 - C·z1
 						Vector point = new Vector(x,y,z);
 						Vector plane = anchor.clone();
-						Vector norm = normal.clone().subtract(anchor);
+						Vector norm = normal.clone();
 
 						double independent = -(norm.getX() * plane.getX() + norm.getY() * plane.getY() + norm.getZ() * plane.getZ());
 
@@ -170,10 +169,6 @@ public class Triangle implements Runnable, Cloneable {
 
 						if (samePlane) {
 							Vector vector = new Vector(x,y,z);
-//							double first = Triangle.getArea(vertices[0].getVector(), vertices[1].getVector(), vector);
-//							double second = Triangle.getArea(vertices[1].getVector(), vertices[2].getVector(), vector);
-//							double third = Triangle.getArea(vertices[2].getVector(), vertices[0].getVector(), vector);
-//							double area = first+second+third;
 							if (inTriangle(vector))
 								spawnedParticles.add(new Location(world, x,y,z));
 						}
