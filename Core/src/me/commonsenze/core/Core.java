@@ -103,6 +103,11 @@ public class Core extends JavaPlugin {
 		Core.instance = null;
 	}
 	
+	public static void main(String[] args) {
+		for (int i = 0; i<100;i++) 
+			System.out.println((i+1)+ " ---------");
+	}
+	
 	private void loadPermissionDefaults() {
 		FileConfiguration config = this.permissionsEditor.getConfig();
 		
